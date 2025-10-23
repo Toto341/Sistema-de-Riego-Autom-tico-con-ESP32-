@@ -1,41 +1,20 @@
 # RiegoAutomtico-ESP32
 🌱 Control de Humedad del Suelo con ESP32
 
-Este proyecto permite medir y automatizar el riego de plantas mediante un sensor capacitivo de humedad del suelo, controlado por una placa ESP32.
-El sistema analiza la humedad en tiempo real y, cuando detecta que el suelo está seco, activa una bomba de agua a través de un módulo relé de 5 V, garantizando el riego automático.
+Este proyecto utiliza un ESP32 para medir la humedad del suelo con un sensor capacitivo, controlar el riego mediante una bomba de agua y un módulo relé, y visualizar los datos en tiempo real a través de un servidor web integrado.
+El sistema busca automatizar el riego de plantas de forma eficiente, precisa y económica.
 
-⚙️ Componentes principales
+🔌 Hardware utilizado
+ - ESP32 – Controlador principal del sistema.
+ - Sensor capacitivo de humedad del suelo (5 V) – Detecta el nivel de humedad.
+ - Sensor de temperatura + gumedad del ambiente – Permite medir la humedad y temperatura del ambiente.
+ - Módulo relé de 5 V (1 canal) – Controla la bomba de agua.
+ - Bomba de agua 5 V – Encargada del riego.
 
-ESP32 – Controlador principal del sistema.
-
-Sensor capacitivo de humedad del suelo (5 V) – Detecta el nivel de humedad.
-
-Divisor resistivo (10 kΩ y 22 kΩ) – Protege el pin ADC del ESP32 al reducir el voltaje.
-
-Capacitor cerámico de 100 nF (50 V) – Filtra el ruido para obtener lecturas estables.
-
-Módulo relé de 5 V (1 canal) – Controla la bomba de agua.
-
-Bomba de agua 5 V – Encargada del riego.
-
-🔍 Funcionamiento
-
-El sensor capacitivo mide la humedad del suelo y envía una señal analógica al ESP32.
-
-El ESP32 convierte esa lectura en un porcentaje de humedad.
-
-Según el valor, el sistema determina el estado del suelo: seco, ideal o muy húmedo.
-
-Si el suelo está seco, el ESP32 activa el relé, encendiendo la bomba de agua.
-
-Una vez que el nivel de humedad se estabiliza, la bomba se apaga automáticamente.
-
-💡 Características
-
-Lecturas filtradas y estables gracias al capacitor cerámico.
-
-Protección del ADC con divisor resistivo.
-
-Compatible con monitoreo en tiempo real vía consola o interfaz web.
-
-Ideal para automatizar el riego en macetas o pequeños huertos.
+⚙️ Funcionamiento
+El sensor capacitivo envía una señal analógica al ESP32, que convierte ese valor en un porcentaje de humedad del suelo.
+De forma simultánea, un sensor DHT11 mide la temperatura y humedad ambiental.
+Con esta información, el ESP32 evalúa el estado del suelo:
+Si la humedad es baja, activa la bomba mediante el módulo relé para regar.
+Si la humedad es adecuada o alta, mantiene la bomba apagada.
+Todos los valores medidos se muestran en una interfaz web local, accesible desde cualquier dispositivo conectado a la misma red Wi-Fi. La página se actualiza en tiempo real y presenta los datos de forma clara y visual.

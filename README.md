@@ -12,6 +12,7 @@ El sistema busca automatizar el riego de plantas de forma eficiente, precisa y e
  - Bomba de agua 5 V – Encargada del riego.
 
 ⚙️ Funcionamiento
+
 El sensor capacitivo envía una señal analógica al ESP32, que convierte ese valor en un porcentaje de humedad del suelo.
 De forma simultánea, un sensor DHT11 mide la temperatura y humedad ambiental.
 Con esta información, el ESP32 evalúa el estado del suelo:

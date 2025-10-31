@@ -4,6 +4,11 @@ import dht
 import time
 from machine import ADC
 
+# --- Variables de control de la bomba ---
+bomba_encendida = False
+bomba_tiempo = 0
+MAX_TIEMPO_BOMBA = 8000  # Tiempo máximo de encendido en milisegundos (8 segundos)
+
 # Variables globales para almacenar los últimos valores
 last_temp = None
 last_hum = None
@@ -67,12 +72,26 @@ def read_soil_moisture():
     return moisturePercentage
 
 def control_bomba(moisture):
-    if moisture < LOW_THRESHOLD:
-        relay.value(1)  # activa la bomba
+    """
+    Controla el encendido y apagado automático de la bomba de agua
+    sin bloquear el flujo del programa.
+    """
+    global bomba_encendida, bomba_tiempo
+    ahora = time.ticks_ms()
+
+    # Encender bomba si el suelo está muy seco
+    if not bomba_encendida and moisture < LOW_THRESHOLD:
+        relay.value(1)
+        bomba_encendida = True
+        bomba_tiempo = ahora
         print("💧 Bomba encendida (humedad baja)")
-    elif moisture > HIGH_THRESHOLD:
-        relay.value(0)  # apaga la bomba
-        print("🚫 Bomba apagada (humedad suficiente)")
+
+    # Apagar bomba si pasó el tiempo máximo o si el suelo ya está húmedo
+    elif bomba_encendida and (moisture > HIGH_THRESHOLD or time.ticks_diff(ahora, bomba_tiempo) > MAX_TIEMPO_BOMBA):
+        relay.value(0)
+        bomba_encendida = False
+        print("🚫 Bomba apagada (humedad suficiente o tiempo cumplido)")
+
 
 def web_page():
     temp, hum = read_sensor()
@@ -573,6 +592,8 @@ s.listen(5)
 print("🌐 Servidor HTTP escuchando en puerto 80...")
 
 while True:
+    soil = read_soil_moisture()
+    control_bomba(soil)
     try:
         cl, addr = s.accept()
         print('Cliente conectado desde', addr)
@@ -595,10 +616,10 @@ while True:
                 break
 
         if path == '/data':
-            response = read_sensor_json()
-            # Control automático de la bomba
             soil = read_soil_moisture()
+            # Control automático de la bomba
             control_bomba(soil)
+            response = read_sensor_json()
             cl.send('HTTP/1.1 200 OK\r\n')
             cl.send('Content-Type: application/json\r\n')
             cl.send('Connection: close\r\n\r\n')
@@ -618,3 +639,5 @@ while True:
             cl.close()
         except:
             pass
+
+    time.sleep_ms(100)

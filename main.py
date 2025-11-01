@@ -80,14 +80,14 @@ def control_bomba(moisture):
     ahora = time.ticks_ms()
 
     # Encender bomba si el suelo está muy seco
-    if not bomba_encendida and moisture < LOW_THRESHOLD:
+    if not bomba_encendida and moisture < (LOW_THRESHOLD - 3):
         relay.value(1)
         bomba_encendida = True
         bomba_tiempo = ahora
         print("💧 Bomba encendida (humedad baja)")
 
     # Apagar bomba si pasó el tiempo máximo o si el suelo ya está húmedo
-    elif bomba_encendida and (moisture > HIGH_THRESHOLD or time.ticks_diff(ahora, bomba_tiempo) > MAX_TIEMPO_BOMBA):
+    elif bomba_encendida and (moisture > (HIGH_THRESHOLD + 3) or time.ticks_diff(ahora, bomba_tiempo) > MAX_TIEMPO_BOMBA):
         relay.value(0)
         bomba_encendida = False
         print("🚫 Bomba apagada (humedad suficiente o tiempo cumplido)")
@@ -591,6 +591,13 @@ s.listen(5)
 
 print("🌐 Servidor HTTP escuchando en puerto 80...")
 
+# Esperar unos segundos antes de iniciar el control de la bomba
+TIEMPO_ESPERA_INICIAL = 10000  # 10 segundos
+print("⏳ Esperando {} segundos antes de activar control de bomba...".format(TIEMPO_ESPERA_INICIAL / 1000))
+time.sleep_ms(TIEMPO_ESPERA_INICIAL)
+print("✅ Control de bomba activado.")
+
+
 while True:
     soil = read_soil_moisture()
     control_bomba(soil)
@@ -639,4 +646,4 @@ while True:
         except:
             pass
 
-    time.sleep_ms(100)
+    time.sleep_ms(50)

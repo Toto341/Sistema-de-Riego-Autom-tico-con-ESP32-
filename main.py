@@ -31,8 +31,8 @@ relay = Pin(26, Pin.OUT)
 relay.value(0)  # apagado al iniciar
 
 # Límites de humedad del suelo (%)
-LOW_THRESHOLD = 50   # debajo de este valor, se enciende la bomba
-HIGH_THRESHOLD = 85  # por encima de este valor, se apaga la bomba
+LOW_THRESHOLD = 55  # debajo de este valor, se enciende la bomba
+HIGH_THRESHOLD = 75 # por encima de este valor, se apaga la bomba
 
 def read_sensor():
     global last_temp, last_hum, last_read_time
@@ -618,7 +618,6 @@ while True:
         if path == '/data':
             soil = read_soil_moisture()
             # Control automático de la bomba
-            control_bomba(soil)
             response = read_sensor_json()
             cl.send('HTTP/1.1 200 OK\r\n')
             cl.send('Content-Type: application/json\r\n')

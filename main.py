@@ -8,7 +8,9 @@ from machine import ADC
 bomba_encendida = False
 bomba_tiempo = 0
 MAX_TIEMPO_BOMBA = 8000  # Tiempo máximo de encendido en milisegundos (8 segundos)
-
+MIN_TIEMPO_BOMBA = 3000  # tiempo mínimo en milisegundos (3 segundos)
+# Variable global para confirmar suelo seco de forma estable
+muestras_secas = 0
 # Variables globales para almacenar los últimos valores
 last_temp = None
 last_hum = None
@@ -74,23 +76,34 @@ def read_soil_moisture():
 def control_bomba(moisture):
     """
     Controla el encendido y apagado automático de la bomba de agua
-    sin bloquear el flujo del programa.
+    evitando falsos arranques por lecturas inestables.
     """
-    global bomba_encendida, bomba_tiempo
+    global bomba_encendida, bomba_tiempo, muestras_secas
     ahora = time.ticks_ms()
 
-    # Encender bomba si el suelo está muy seco
-    if not bomba_encendida and moisture < (LOW_THRESHOLD - 3):
-        relay.value(1)
-        bomba_encendida = True
-        bomba_tiempo = ahora
-        print("💧 Bomba encendida (humedad baja)")
+    # --- Lógica para encendido ---
+    if not bomba_encendida:
+        # Si el suelo está seco, aumentamos el contador
+        if moisture < (LOW_THRESHOLD - 3):
+            muestras_secas += 1
+        else:
+            muestras_secas = 0  # se reinicia si vuelve a estar húmedo
 
-    # Apagar bomba si pasó el tiempo máximo o si el suelo ya está húmedo
-    elif bomba_encendida and (moisture > (HIGH_THRESHOLD + 3) or time.ticks_diff(ahora, bomba_tiempo) > MAX_TIEMPO_BOMBA):
-        relay.value(0)
-        bomba_encendida = False
-        print("🚫 Bomba apagada (humedad suficiente o tiempo cumplido)")
+        # Solo enciende si hay 3 lecturas consecutivas de suelo seco
+        if muestras_secas >= 3:
+            relay.value(1)
+            bomba_encendida = True
+            bomba_tiempo = ahora
+            muestras_secas = 0
+            print("💧 Bomba encendida (humedad baja estable)")
+
+    # --- Lógica para apagado ---
+    elif bomba_encendida:
+        tiempo_encendida = time.ticks_diff(ahora, bomba_tiempo)
+        if (moisture > (HIGH_THRESHOLD + 3) and tiempo_encendida > MIN_TIEMPO_BOMBA) or tiempo_encendida > MAX_TIEMPO_BOMBA:
+            relay.value(0)
+            bomba_encendida = False
+            print("🚫 Bomba apagada (humedad suficiente o tiempo cumplido)")
 
 
 def web_page():
@@ -591,16 +604,23 @@ s.listen(5)
 
 print("🌐 Servidor HTTP escuchando en puerto 80...")
 
-# Esperar unos segundos antes de iniciar el control de la bomba
-TIEMPO_ESPERA_INICIAL = 10000  # 10 segundos
-print("⏳ Esperando {} segundos antes de activar control de bomba...".format(TIEMPO_ESPERA_INICIAL / 1000))
-time.sleep_ms(TIEMPO_ESPERA_INICIAL)
-print("✅ Control de bomba activado.")
+# Mensaje inicial
+print("🔧 Inicializando sensores y sistema de riego...")
+time.sleep(2)  # pequeña pausa visual
 
-
+TIEMPO_ESPERA_INICIAL = 20000  # 10 segundos
+inicio_bomba = time.ticks_ms()
+print("⏳ Esperando {} segundos antes de activar el control automático de la bomba...".format(TIEMPO_ESPERA_INICIAL / 1000))
+control_activo = False
 while True:
+
     soil = read_soil_moisture()
-    control_bomba(soil)
+    if not control_activo and time.ticks_diff(time.ticks_ms(), inicio_bomba) > TIEMPO_ESPERA_INICIAL:
+        control_activo = True
+        print("✅ Control automático de bomba activado.")
+    
+    if control_activo:
+        control_bomba(soil)
     try:
         cl, addr = s.accept()
         print('Cliente conectado desde', addr)
@@ -646,4 +666,4 @@ while True:
         except:
             pass
 
-    time.sleep_ms(50)
+    time.sleep_ms(10)
